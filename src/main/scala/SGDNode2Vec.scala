@@ -1,13 +1,12 @@
 
 import breeze.linalg.{Axis, DenseMatrix, DenseVector, sum}
 import breeze.numerics.sigmoid
-import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
 import scala.util.Random
 
-
-class SGDNode2Vec(embSize: Int, nodes: Int, sc: SparkContext) {
+@SerialVersionUID(15L)
+class SGDNode2Vec(embSize: Int, nodes: Int) extends Serializable {
   val rand = new Random()
   val embeddingIn = new DenseMatrix(rows = embSize, cols = nodes,
     Array.fill(nodes * embSize)(rand.nextDouble()))
@@ -18,12 +17,10 @@ class SGDNode2Vec(embSize: Int, nodes: Int, sc: SparkContext) {
           epochs: Int, negativeSamples: Int, batchSize: Double)
   : (DenseMatrix[Double], DenseMatrix[Double]) = {
 
-    for (epoch <- 1 to epochs) {
-      val embInBroadcast = sc.broadcast(embeddingIn)
-      val embOutBroadcast = sc.broadcast(embeddingOut)
+    for (_ <- 1 to epochs) {
       for (batch <- batches) {
         val gradients = batch.map(edge => estimateEdgeGradients(edge._1, edge._2, negativeSamples,
-          embInBroadcast.value, embOutBroadcast.value))
+          embeddingIn, embeddingOut))
         val inGrads = gradients.map(x => x._1).reduceByKey(_ + _)
         val outGrads = gradients.map(x => x._2).reduceByKey(_ + _)
         inGrads.foreach(x => {
