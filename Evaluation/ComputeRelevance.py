@@ -14,7 +14,8 @@ def compute_relevance(IN, OUT, train, K=10):
     except ones that was already seen in the training set. Convert relevance to probabilities.
     Returns top K most relevant nodes.
     """
-    recomendations = {}
+    N = IN.shape[1]
+    recomendations = np.zeros((K,N))
     for i in range(IN.shape[1]):
         node = IN[:,i]
         relevance = node[np.newaxis, :].dot(OUT)
@@ -22,11 +23,13 @@ def compute_relevance(IN, OUT, train, K=10):
         users_to_drop = np.where(train[:, 0] == i)[0]
         users_to_drop = train[users_to_drop][:,1]
         relevance = relevance.T
+        # relevance[users_to_drop] = 0
         probabilities = softmax(relevance)
         probabilities[users_to_drop] = 0
+        probabilities[i] = 0
 
         top_K = np.argsort(probabilities, axis=0)[-K:]
-        recomendations[i] = top_K.T[0]
+        recomendations[:,i] = top_K.reshape(-1,)
     return recomendations
 
 
@@ -36,13 +39,14 @@ def estimate_precision(y_hat, destination_nodes, N):
     compute Mean Average Precision for recomendations
     """
     MAP = 0.
-    for current_node in y_hat.keys():  # assert len(y_hat.keyset()) == N
+    for current_node in range(y_hat.shape[1]):
 
-        true_destinations = destination_nodes[source_nodes == current_node]  # true destinations for current_node
+        # true destinations for current_node
+        true_destinations = destination_nodes[source_nodes == current_node]
         GTP = len(true_destinations)  # total number of hidden edges for the node.
 
-        predicted_destinations = y_hat[
-            current_node]  # array for each node in the dict should contain TOP k (10 in our case) elements.
+        #get top k predictions for current node
+        predicted_destinations = y_hat[:,current_node]
 
         TP, FP, AP = 0., 0., 0.
         for predicted_destination in predicted_destinations:
@@ -64,20 +68,21 @@ def estimate_precision(y_hat, destination_nodes, N):
 
 
 if __name__ == '__main__':
-    """
-    train_path - path to training data
-    IN_path - path to IN matrix
-    OUT_path - path to out matrix
-    """
+    #PATH TO DATA
     train_path = sys.argv[0]
-    IN_path = sys.argv[1]
-    OUT_path = sys.argv[2]
+    test_path = sys.argv[1]
+    IN_path = sys.argv[2]
+    OUT_path = sys.argv[3]
+    # train_path = '/home/ruf/Downloads/train_epin.csv'
+    # test_path = '/home/ruf/Downloads/test_epin.csv'
+    # IN_path = '/home/ruf/repos/Node2Vec/emb_in.csv'
+    # OUT_path = '/home/ruf/repos/Node2Vec/emb_out.csv'
 
     #READING DATA
-    train = pd.read_csv(train_path)
-    source_nodes = train.get("source_node").values
-    destination_nodes = train.get("destination_node").values
-    train = train.values
+    train = pd.read_csv(train_path).values
+    test = pd.read_csv(test_path)
+    source_nodes = test.get("source_node").values
+    destination_nodes = test.get("destination_node").values
     IN = genfromtxt(IN_path, delimiter=',')
     OUT = genfromtxt(OUT_path, delimiter=',')
     K = 10
