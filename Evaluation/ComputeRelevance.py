@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
-from numpy import genfromtxt
 import sys
+from numpy import genfromtxt
+
 
 def softmax(x):
     e_x = np.exp(x)
@@ -15,23 +16,20 @@ def compute_relevance(IN, OUT, train, K=10):
     Returns top K most relevant nodes.
     """
     N = IN.shape[1]
-    recomendations = np.zeros((K,N))
+    recomendations = np.zeros((K, N))
     for i in range(IN.shape[1]):
-        node = IN[:,i]
+        node = IN[:, i]
         relevance = node[np.newaxis, :].dot(OUT)
-
         users_to_drop = np.where(train[:, 0] == i)[0]
-        users_to_drop = train[users_to_drop][:,1]
+        users_to_drop = train[users_to_drop][:, 1]
         relevance = relevance.T
         # relevance[users_to_drop] = 0
         probabilities = softmax(relevance)
         probabilities[users_to_drop] = 0
         probabilities[i] = 0
-
-        top_K = np.argsort(probabilities, axis=0)[-K:]
-        recomendations[:,i] = top_K.reshape(-1,)
+        top_K = np.argsort(-probabilities, axis=0)[:K]
+        recomendations[:, i] = top_K.reshape(-1, )
     return recomendations
-
 
 
 def estimate_precision(y_hat, destination_nodes, N):
@@ -44,9 +42,12 @@ def estimate_precision(y_hat, destination_nodes, N):
         # true destinations for current_node
         true_destinations = destination_nodes[source_nodes == current_node]
         GTP = len(true_destinations)  # total number of hidden edges for the node.
+        if GTP == 0:
+            N -= 1
+            continue
 
-        #get top k predictions for current node
-        predicted_destinations = y_hat[:,current_node]
+        # get top k predictions for current node
+        predicted_destinations = y_hat[:, current_node]
 
         TP, FP, AP = 0., 0., 0.
         for predicted_destination in predicted_destinations:
@@ -59,26 +60,26 @@ def estimate_precision(y_hat, destination_nodes, N):
 
             current_precision = TP / (TP + FP)
 
-            AP += current_precision / GTP
+            AP += current_precision
+        AP /= GTP
 
         MAP += AP
 
     return MAP / N
 
 
-
 if __name__ == '__main__':
-    #PATH TO DATA
-    train_path = sys.argv[0]
-    test_path = sys.argv[1]
-    IN_path = sys.argv[2]
-    OUT_path = sys.argv[3]
+    # PATH TO DATA
+    train_path = sys.argv[1]
+    test_path = sys.argv[2]
+    IN_path = sys.argv[3]
+    OUT_path = sys.argv[4]
     # train_path = '/home/ruf/Downloads/train_epin.csv'
     # test_path = '/home/ruf/Downloads/test_epin.csv'
-    # IN_path = '/home/ruf/repos/Node2Vec/emb_in.csv'
+    # IN_path = '/home/ruf/repos/Node2Vec/emb_in_t.csv'
     # OUT_path = '/home/ruf/repos/Node2Vec/emb_out.csv'
 
-    #READING DATA
+    # READING DATA
     train = pd.read_csv(train_path).values
     test = pd.read_csv(test_path)
     source_nodes = test.get("source_node").values
@@ -88,9 +89,9 @@ if __name__ == '__main__':
     K = 10
     N = IN.shape[1]
 
-    #COMPUTE RECOMENDATION FOR EACH NODE
-    recomendations = compute_relevance(IN,OUT,train,K)
+    # COMPUTE RECOMENDATION FOR EACH NODE
+    recomendations = compute_relevance(IN, OUT, train, K)
 
-    #COMPUTE MEAN AVERAGE PRECISION FOR RECOMENDATIONS
+    # COMPUTE MEAN AVERAGE PRECISION FOR RECOMENDATIONS
     MAP = estimate_precision(recomendations, destination_nodes, N)
     print(MAP)
