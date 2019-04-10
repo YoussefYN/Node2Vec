@@ -14,7 +14,7 @@ object Main {
       .getOrCreate()
 
     val sc = session.sparkContext
-
+    sc.setLogLevel("OFF")
     val batchSize = 10000
     val epoch = 20
     val learningRate = 1.0
