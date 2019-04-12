@@ -37,12 +37,16 @@ class SGDNode2Vec(embSize: Int, nodes: Int, loadParams: Boolean = false) extends
         outGrads.collect().foreach(x => {
           embeddingOut(::, x._1) += -learningRate * x._2 / batchSize
         })
-        error += batch.map(edge => estimateEdgeError(edge._1, edge._2, negativeSamples,
-          embeddingIn, embeddingOut)).reduce(_ + _)
+        error += getBatchError(batch, negativeSamples)
       }
       println("Epoch", epoch, "Error:", error)
     }
     (embeddingIn, embeddingOut)
+  }
+
+  def getBatchError(batch: RDD[(Int, Int)], negativeSamples: Int): Double = {
+    batch.map(edge => estimateEdgeError(edge._1, edge._2, negativeSamples,
+      embeddingIn, embeddingOut)).reduce(_ + _) / batch.count()
   }
 
   def estimateEdgeGradients(source: Int, destination: Int, negatives: Int,
