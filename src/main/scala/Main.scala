@@ -26,8 +26,10 @@ object Main {
     val trainData = helper.loadEdges(args(0))
     val batches = helper.get_edges_batches(trainData, batchSize)
 
+    val testData = helper.loadEdges(args(1))
+
     val node2Vec = new SGDNode2Vec(embeddingSize, nodes)
-    val (embIn, embOut) = node2Vec.fit(batches, learningRate, epoch, negativeSamples, batchSize)
+    val (embIn, embOut) = node2Vec.fit(batches, learningRate, epoch, negativeSamples, batchSize, testData)
     csvwrite(new File("emb_in.csv"), embIn, separator = ',')
     csvwrite(new File("emb_out.csv"), embOut, separator = ',')
 

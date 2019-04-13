@@ -20,7 +20,8 @@ class SGDNode2Vec(embSize: Int, nodes: Int, loadParams: Boolean = false) extends
     else new DenseMatrix(rows = embSize, cols = nodes, Array.fill(nodes * embSize)(rand.nextDouble()))
 
   def fit(batches: Array[RDD[(Int, Int)]], learningRate: Double,
-          epochs: Int, negativeSamples: Int, batchSize: Double)
+          epochs: Int, negativeSamples: Int, batchSize: Double,
+          testData: RDD[(Int, Int)])
   : (DenseMatrix[Double], DenseMatrix[Double]) = {
 
     for (epoch <- 1 to epochs) {
@@ -39,7 +40,8 @@ class SGDNode2Vec(embSize: Int, nodes: Int, loadParams: Boolean = false) extends
         })
         error += getBatchError(batch, negativeSamples)
       }
-      println("Epoch", epoch, "Error:", error)
+      val testError = getBatchError(testData, negativeSamples)
+      println("Epoch", epoch, "Train error:", error, "Test error:", testError)
     }
     (embeddingIn, embeddingOut)
   }
