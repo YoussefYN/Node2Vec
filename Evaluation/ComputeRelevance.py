@@ -74,34 +74,6 @@ def estimate_precision(y_hat, destination_nodes, N):
 
     return MAP / N
 
-def MAP_v2(y_hat, destination_nodes, N):
-    MAP = 0.
-    for current_node in range(y_hat.shape[1]):
-        # true destinations for current_node
-        true_destinations = destination_nodes[source_nodes == current_node]
-        GTP = len(true_destinations)  # total number of hidden edges for the node.
-        if GTP == 0:
-            N -= 1
-            continue
-
-        # get top k predictions for current node
-        predicted_destinations = y_hat[:, current_node]
-
-        AP = 0.
-        i=1
-        number = 1
-        for predicted_destination in predicted_destinations:
-            if predicted_destination in true_destinations:
-                AP += number/i
-                number+=1
-            i+=1
-        AP /= GTP
-
-        MAP += AP
-
-    return MAP / N
-
-
 if __name__ == '__main__':
     # PATH TO DATA
     train_path = sys.argv[1]
