@@ -23,13 +23,20 @@ def compute_relevance(IN, OUT, train, K=10):
         users_to_drop = np.where(train[:, 0] == i)[0]
         users_to_drop = train[users_to_drop][:, 1]
         relevance = relevance.T
-        # relevance[users_to_drop] = 0
         probabilities = softmax(relevance)
-        probabilities[users_to_drop] = 0
-        probabilities[i] = 0
+        probabilities[users_to_drop] = -1
+        probabilities[i] = -1
         top_K = np.argsort(-probabilities, axis=0)[:K]
         recomendations[:, i] = top_K.reshape(-1, )
     return recomendations
+
+def save_predictions(predictions):
+    with open('predictions.csv', mode='w') as f:
+        f.write(f'source_node,destination_node\n')
+        for i in range(predictions.shape[1]):
+            for j in predictions[:,i]:
+                f.write(f'{i},{int(j)}\n')
+    pass
 
 
 def estimate_precision(y_hat, destination_nodes, N):
@@ -67,6 +74,33 @@ def estimate_precision(y_hat, destination_nodes, N):
 
     return MAP / N
 
+def MAP_v2(y_hat, destination_nodes, N):
+    MAP = 0.
+    for current_node in range(y_hat.shape[1]):
+        # true destinations for current_node
+        true_destinations = destination_nodes[source_nodes == current_node]
+        GTP = len(true_destinations)  # total number of hidden edges for the node.
+        if GTP == 0:
+            N -= 1
+            continue
+
+        # get top k predictions for current node
+        predicted_destinations = y_hat[:, current_node]
+
+        AP = 0.
+        i=1
+        number = 1
+        for predicted_destination in predicted_destinations:
+            if predicted_destination in true_destinations:
+                AP += number/i
+                number+=1
+            i+=1
+        AP /= GTP
+
+        MAP += AP
+
+    return MAP / N
+
 
 if __name__ == '__main__':
     # PATH TO DATA
@@ -76,7 +110,7 @@ if __name__ == '__main__':
     OUT_path = sys.argv[4]
     # train_path = '/home/ruf/Downloads/train_epin.csv'
     # test_path = '/home/ruf/Downloads/test_epin.csv'
-    # IN_path = '/home/ruf/repos/Node2Vec/emb_in_t.csv'
+    # IN_path = '/home/ruf/repos/Node2Vec/emb_in.csv'
     # OUT_path = '/home/ruf/repos/Node2Vec/emb_out.csv'
 
     # READING DATA
@@ -91,6 +125,9 @@ if __name__ == '__main__':
 
     # COMPUTE RECOMENDATION FOR EACH NODE
     recomendations = compute_relevance(IN, OUT, train, K)
+
+    #SAVE RECOMENDATIONS
+    save_predictions(recomendations)
 
     # COMPUTE MEAN AVERAGE PRECISION FOR RECOMENDATIONS
     MAP = estimate_precision(recomendations, destination_nodes, N)
