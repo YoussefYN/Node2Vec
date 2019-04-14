@@ -16,9 +16,9 @@ object Main {
     sc.setLogLevel("OFF")
 
     val batchSize = 10000
-    val epoch = 20
-    val learningRate = 2.7
-    val embeddingSize = 50
+    val epoch = 10
+    val learningRate = 27
+    val embeddingSize = 35
     val negativeSamples = 20
     val nodes = 40334
 

@@ -40,10 +40,14 @@ class SGDNode2Vec(embSize: Int, nodes: Int, loadParams: Boolean = false) extends
         })
         error += getBatchError(batch, negativeSamples)
       }
-      val testError = getBatchError(testData, negativeSamples)
+      val testError = getTestError(testData)
       println("Epoch", epoch, "Train error:", error, "Test error:", testError)
     }
     (embeddingIn, embeddingOut)
+  }
+
+  def getTestError(testData: RDD[(Int, Int)]): Double = {
+    testData.map(edge => estimateTestError(edge._1, edge._2, embeddingIn, embeddingOut)).reduce(_ + _) / testData.count()
   }
 
   def getBatchError(batch: RDD[(Int, Int)], negativeSamples: Int): Double = {
@@ -67,6 +71,16 @@ class SGDNode2Vec(embSize: Int, nodes: Int, loadParams: Boolean = false) extends
     val outGrad = in * -sigmoid.apply(-in.dot(out))
 
     ((source, inGrad), (destination, outGrad))
+  }
+
+  def estimateTestError(source: Int, destination: Int,
+                        embInBroadcast: DenseMatrix[Double], embOutBroadcast: DenseMatrix[Double]):
+  Double = {
+
+    val in = embInBroadcast(::, source)
+    val out = embOutBroadcast(::, destination)
+
+    -log(sigmoid.apply(in.dot(out)))
   }
 
   def estimateEdgeError(source: Int, destination: Int, negatives: Int,
